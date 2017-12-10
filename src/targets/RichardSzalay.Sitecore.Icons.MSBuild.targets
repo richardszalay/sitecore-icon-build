@@ -1,0 +1,145 @@
+<Project>
+
+  <PropertyGroup>
+    <BuildSitecoreSizedIconArchives Condition="'$(BuildSitecoreSizedIconArchives)' == ''">true</BuildSitecoreSizedIconArchives>
+    <CollectDefaultSitecoreSizedIconSources>$(BuildSitecoreSizedIconArchives)</CollectDefaultSitecoreSizedIconSources>
+    <DefaultSitecoreSizedIconSourcesParentDirectory>sitecore\shell\Themes\Standard</DefaultSitecoreSizedIconSourcesParentDirectory>
+    <DefaultSitecoreSizedIconSourcesMarker>32x32</DefaultSitecoreSizedIconSourcesMarker>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IntermediateSitecoreIconArchivePath>$(IntermediateOutputPath)sitecoreIcons\</IntermediateSitecoreIconArchivePath>
+
+    <CleanDependsOn>
+      $(CleanDependsOn);
+      CleanIntermediateSitecoreIconArchivePath
+    </CleanDependsOn>
+
+    <PreBuildEventDependsOn Condition="'$(BuildSitecoreSizedIconArchives)' == 'true'">
+      $(PostBuildEventDependsOn);
+      CollectSitecoreSizedIconSources;
+    </PreBuildEventDependsOn>
+
+    <PipelineCollectFilesPhaseDependsOn>
+      $(PipelineCollectFilesPhaseDependsOn);
+      CollectGeneratedSitecoreIconArchives;
+    </PipelineCollectFilesPhaseDependsOn>
+
+    <ExcludeFilesFromPackageDependsOn>
+      $(ExcludeFilesFromPackageDependsOn);
+      ExcludeSizedIconSources
+    </ExcludeFilesFromPackageDependsOn>
+  </PropertyGroup>
+
+  <Target Name="CollectSitecoreSizedIconSources">
+    <ItemGroup>
+      <_SitecoreSizedIconSources Include="$([System.IO.Directory]::GetDirectories(`$(DefaultSitecoreSizedIconSourcesParentDirectory)`))"  />
+      <SitecoreSizedIconSources Include="@(_SitecoreSizedIconSources)" Condition="Exists('%(FullPath)\$(DefaultSitecoreSizedIconSourcesMarker)')" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <BuildSitecoreSizedIconArchivesDependsOn Condition="'$(CollectDefaultSitecoreSizedIconSources)' == 'true'">
+      $(BuildSitecoreSizedIconArchivesDependsOn);
+      CollectSitecoreSizedIconSources
+    </BuildSitecoreSizedIconArchivesDependsOn>    
+  </PropertyGroup>
+
+  <Target Name="CollectGeneratedSitecoreIconArchives">
+    <ItemGroup>
+      <_SitecoreIconArchivesForPackaging Include="$(IntermediateSitecoreIconArchivePath)*.zip" />
+      <FilesForPackagingFromProject Include="@(_SitecoreIconArchivesForPackaging)">
+        <DestinationRelativePath>sitecore\shell\Themes\Standard\%(Filename)%(Extension)</DestinationRelativePath>
+      </FilesForPackagingFromProject>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ExcludeSizedIconSources">
+    <ItemGroup>
+      <_ExcludeSitecoreSizedIconSourceSpecs Include="@(SitecoreSizedIconSources -> '%(FullPath)\**\*')" />
+    </ItemGroup>
+
+    <CreateItem Include="@(_ExcludeSitecoreSizedIconSourceSpecs)">
+      <Output TaskParameter="Include" ItemName="ExcludeFromPackageFiles" />
+    </CreateItem>
+  </Target>
+
+  <Target Name="CleanIntermediateSitecoreIconArchivePath">
+    <RemoveDir Directories="$(IntermediateSitecoreIconArchivePath)" Condition="Exists($(IntermediateSitecoreIconArchivePath))" />
+  </Target>
+
+  <Target Name="BuildSitecoreSizedIconArchives" 
+          AfterTargets="Compile"
+          DependsOnTargets="$(BuildSitecoreSizedIconArchivesDependsOn)"
+          Inputs="@(SitecoreSizedIconSources)"
+          Outputs="$(IntermediateSitecoreIconArchivePath)%(Filename).zip"
+          >
+
+    <PropertyGroup>
+      <SitecoreSizedIconSource>@(SitecoreSizedIconSources -> '%(FullPath)')</SitecoreSizedIconSource>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_SitecoreIconArchiveFiles Remove="@(_SitecoreIconArchiveFiles)" />
+      <_SitecoreIconArchiveFileSpecs Include="$(SitecoreSizedIconSource)\**\*" />
+    </ItemGroup>
+
+    <CreateItem Include="@(_SitecoreIconArchiveFileSpecs)" AdditionalMetadata="EntryPath=%(RecursiveDir)%(Filename)%(Extension)">
+      <Output TaskParameter="Include" ItemName="_SitecoreIconArchiveFiles" />
+    </CreateItem>
+
+    <MakeDir Directories="$(IntermediateSitecoreIconArchivePath)"
+          Condition="!Exists($(IntermediateSitecoreIconArchivePath))" />
+
+    <Zip InputFileNames="@(_SitecoreIconArchiveFiles)"
+         OutputFileName="@(SitecoreSizedIconSources -> '$(IntermediateSitecoreIconArchivePath)%(Filename).zip')"
+         OverwriteExistingFile="true" />
+
+  </Target>
+
+  <UsingTask TaskName="Zip" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+    <ParameterGroup>
+      <InputFileNames ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <OutputFileName ParameterType="System.String" Required="true" />
+      <OverwriteExistingFile ParameterType="System.Boolean" Required="false" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.IO.Compression" />
+      <Using Namespace="System.IO.Compression" />
+      <Code Type="Fragment" Language="cs">
+      <![CDATA[        
+        const int BufferSize = 64 * 1024;
+ 
+        var buffer = new byte[BufferSize];
+        var fileMode = OverwriteExistingFile ? FileMode.Create : FileMode.CreateNew;
+ 
+        using (var outputFileStream = new FileStream(OutputFileName, fileMode))
+        {
+          using (var archive = new ZipArchive(outputFileStream, ZipArchiveMode.Create))
+          {
+            foreach (var inputFileName in InputFileNames)
+            {
+              var inputFileFullPath = inputFileName.GetMetadata("FullPath");
+              var inputFileEntryPath = inputFileName.GetMetadata("EntryPath");
+              
+              var archiveEntry = archive.CreateEntry(inputFileEntryPath);
+ 
+              using (var fs = new FileStream(inputFileFullPath, FileMode.Open))
+              {
+                using (var zipStream = archiveEntry.Open())
+                {
+                  int bytesRead = -1;
+                  while ((bytesRead = fs.Read(buffer, 0, BufferSize)) > 0)
+                  {
+                    zipStream.Write(buffer, 0, bytesRead);
+                  }
+                }
+              }
+            }
+          }
+        }        
+      ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>

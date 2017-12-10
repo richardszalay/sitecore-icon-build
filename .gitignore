@@ -1,0 +1,17 @@
+obj/
+bin/
+*.user
+.vs/
+**/packages/
+
+*.dll
+*.pdb
+
+*.nupkg
+
+tools/
+
+build/*.xml
+build/.tools/
+
+*.test.targets
