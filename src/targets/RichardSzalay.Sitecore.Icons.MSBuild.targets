@@ -1,10 +1,9 @@
 <Project>
 
   <PropertyGroup>
-    <BuildSitecoreSizedIconArchives Condition="'$(BuildSitecoreSizedIconArchives)' == ''">true</BuildSitecoreSizedIconArchives>
-    <CollectDefaultSitecoreSizedIconSources>$(BuildSitecoreSizedIconArchives)</CollectDefaultSitecoreSizedIconSources>
+    <BuildSitecoreIconArchives Condition="'$(BuildSitecoreIconArchives)' == ''">true</BuildSitecoreIconArchives>
+    <CollectDefaultSitecoreSizedIconSources>$(BuildSitecoreIconArchives)</CollectDefaultSitecoreSizedIconSources>
     <DefaultSitecoreSizedIconSourcesParentDirectory>sitecore\shell\Themes\Standard</DefaultSitecoreSizedIconSourcesParentDirectory>
-    <DefaultSitecoreSizedIconSourcesMarker>32x32</DefaultSitecoreSizedIconSourcesMarker>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,10 +14,10 @@
       CleanIntermediateSitecoreIconArchivePath
     </CleanDependsOn>
 
-    <PreBuildEventDependsOn Condition="'$(BuildSitecoreSizedIconArchives)' == 'true'">
-      $(PostBuildEventDependsOn);
-      CollectSitecoreSizedIconSources;
-    </PreBuildEventDependsOn>
+    <BuildSitecoreIconArchivesDependsOn>
+      $(BuildSitecoreIconArchivesDependsOn);
+      CollectSitecoreSizedIconSourceFiles;
+    </BuildSitecoreIconArchivesDependsOn>
 
     <PipelineCollectFilesPhaseDependsOn>
       $(PipelineCollectFilesPhaseDependsOn);
@@ -33,15 +32,41 @@
 
   <Target Name="CollectSitecoreSizedIconSources">
     <ItemGroup>
-      <_SitecoreSizedIconSources Include="$([System.IO.Directory]::GetDirectories(`$(DefaultSitecoreSizedIconSourcesParentDirectory)`))"  />
-      <SitecoreSizedIconSources Include="@(_SitecoreSizedIconSources)" Condition="Exists('%(FullPath)\$(DefaultSitecoreSizedIconSourcesMarker)')" />
+      <SitecoreSizedIconSources Include="$([System.IO.Directory]::GetDirectories(`$(DefaultSitecoreSizedIconSourcesParentDirectory)`))"  />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <CollectSitecoreSizedIconSourceFilesDependsOn>
+      $(CollectSitecoreSizedIconSourceFilesDependsOn);
+      CollectSitecoreSizedIconSources;
+    </CollectSitecoreSizedIconSourceFilesDependsOn>
+  </PropertyGroup>
+
+  <Target Name="CollectSitecoreSizedIconSourceFiles" DependsOnTargets="$(CollectSitecoreSizedIconSourceFilesDependsOn)">
+    <ItemGroup>
+      <_SitecoreSizedIconSourceFilesSpecs Include="@(SitecoreSizedIconSources -> '%(FullPath)\**\*')"
+                                          >
+        <ArchiveName>%(Filename)</ArchiveName>
+      </_SitecoreSizedIconSourceFilesSpecs>
+    </ItemGroup>
+
+    <CreateItem Include="@(_SitecoreSizedIconSourceFilesSpecs)">
+      <Output TaskParameter="Include" ItemName="_SitecoreSizedIconSourceFiles" />
+    </CreateItem>
+
+    <ItemGroup>
+      <SitecoreSizedIconSourceFiles Include="@(_SitecoreSizedIconSourceFiles)"
+                                    Condition="'%(RecursiveDir)' != ''">
+        <EntryPath>%(RecursiveDir)%(Filename)%(Extension)</EntryPath>
+      </SitecoreSizedIconSourceFiles>
     </ItemGroup>
   </Target>
 
   <PropertyGroup>
     <BuildSitecoreSizedIconArchivesDependsOn Condition="'$(CollectDefaultSitecoreSizedIconSources)' == 'true'">
       $(BuildSitecoreSizedIconArchivesDependsOn);
-      CollectSitecoreSizedIconSources
+      CollectSitecoreSizedIconSourceFiles
     </BuildSitecoreSizedIconArchivesDependsOn>    
   </PropertyGroup>
 
@@ -54,50 +79,34 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="ExcludeSizedIconSources">
+  <Target Name="ExcludeSizedIconSources" DependsOnTargets="CollectSitecoreSizedIconSourceFiles">
     <ItemGroup>
-      <_ExcludeSitecoreSizedIconSourceSpecs Include="@(SitecoreSizedIconSources -> '%(FullPath)\**\*')" />
+      <ExcludeFromPackageFiles Include="@(SitecoreSizedIconSourceFiles)" />
     </ItemGroup>
-
-    <CreateItem Include="@(_ExcludeSitecoreSizedIconSourceSpecs)">
-      <Output TaskParameter="Include" ItemName="ExcludeFromPackageFiles" />
-    </CreateItem>
   </Target>
 
   <Target Name="CleanIntermediateSitecoreIconArchivePath">
     <RemoveDir Directories="$(IntermediateSitecoreIconArchivePath)" Condition="Exists($(IntermediateSitecoreIconArchivePath))" />
   </Target>
 
-  <Target Name="BuildSitecoreSizedIconArchives" 
+  <Target Name="BuildSitecoreIconArchives" 
           AfterTargets="Compile"
-          DependsOnTargets="$(BuildSitecoreSizedIconArchivesDependsOn)"
-          Inputs="@(SitecoreSizedIconSources)"
-          Outputs="$(IntermediateSitecoreIconArchivePath)%(Filename).zip"
+          DependsOnTargets="$(BuildSitecoreIconArchivesDependsOn)"
+          Inputs="@(SitecoreSizedIconSourceFiles)"
+          Outputs="$(IntermediateSitecoreIconArchivePath)%(ArchiveName).zip"
           >
-
-    <PropertyGroup>
-      <SitecoreSizedIconSource>@(SitecoreSizedIconSources -> '%(FullPath)')</SitecoreSizedIconSource>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <_SitecoreIconArchiveFiles Remove="@(_SitecoreIconArchiveFiles)" />
-      <_SitecoreIconArchiveFileSpecs Include="$(SitecoreSizedIconSource)\**\*" />
-    </ItemGroup>
-
-    <CreateItem Include="@(_SitecoreIconArchiveFileSpecs)" AdditionalMetadata="EntryPath=%(RecursiveDir)%(Filename)%(Extension)">
-      <Output TaskParameter="Include" ItemName="_SitecoreIconArchiveFiles" />
-    </CreateItem>
 
     <MakeDir Directories="$(IntermediateSitecoreIconArchivePath)"
           Condition="!Exists($(IntermediateSitecoreIconArchivePath))" />
 
-    <Zip InputFileNames="@(_SitecoreIconArchiveFiles)"
-         OutputFileName="@(SitecoreSizedIconSources -> '$(IntermediateSitecoreIconArchivePath)%(Filename).zip')"
+    <CreateSitecoreIconArchive
+         InputFileNames="@(SitecoreSizedIconSourceFiles)"
+         OutputFileName="$(IntermediateSitecoreIconArchivePath)%(ArchiveName).zip"
          OverwriteExistingFile="true" />
 
   </Target>
 
-  <UsingTask TaskName="Zip" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+  <UsingTask TaskName="CreateSitecoreIconArchive" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
     <ParameterGroup>
       <InputFileNames ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
       <OutputFileName ParameterType="System.String" Required="true" />

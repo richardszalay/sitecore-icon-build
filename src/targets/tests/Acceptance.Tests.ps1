@@ -1,6 +1,4 @@
-. "$PSScriptRoot/utils/WebConfig.ps1"
 . "$PSScriptRoot/utils/MSBuild.ps1"
-. "$PSScriptRoot/utils/MSDeploy.ps1"
 
 $fixtures = @{
     default = @{
@@ -78,6 +76,31 @@ Describe "Default configuration" {
             $result = (Get-Item $set1OutputPath).LastWriteTime
 
             $result | Should Be $firstWrite
+        }
+    }
+
+    Context "building a project with changed sized sitecore icons" {
+        $projectPath = $fixtures.default.Project
+        $projectDir = Split-Path $projectPath -Parent
+        $defaultArtifactDir = Join-Path $projectDir "obj\Debug\sitecoreIcons"
+        $set1OutputPath = Join-Path $defaultArtifactDir "Set1.zip"
+        
+        Invoke-MSBuild -Project $projectPath -Properties @{
+            "Configuration" = "Debug";
+        }
+
+        $firstWrite = (Get-Item $set1OutputPath).LastWriteTime
+
+        (Get-Item "$projectDir\sitecore\shell\Themes\Standard\Set1\32x32\icon1.png").LastWriteTime = Get-Date
+
+        Invoke-MSBuild -Project $projectPath -TargetName "Build" -Properties @{
+            "Configuration" = "Debug";
+        }
+
+        It "should recreate the icon set archive" {
+            $result = (Get-Item $set1OutputPath).LastWriteTime
+
+            $result | Should Not Be $firstWrite
         }
     }
 
