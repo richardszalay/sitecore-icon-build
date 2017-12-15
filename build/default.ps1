@@ -6,7 +6,7 @@ properties {
   $buildConfiguration = "Release"
   $testFilePattern = "$PSScriptRoot\..\src\targets\tests"
   $toolsDir = "$PSScriptRoot\.tools"
-  $tasksSolutionPath = "$PSScriptRoot\..\src\tasks\RichardSzalay.Helix.Publishing.Tasks.sln"
+  $tasksSolutionPath = "$PSScriptRoot\..\src\tasks\RichardSzalay.Sitecore.Icons.Tasks.sln"
   $artifactDir = "$PSScriptRoot\..\bin"
 
   if ($env:CI) {
@@ -17,7 +17,7 @@ properties {
     $buildTasksDeps = @("Restore")
 
     if (-not $packageVersion) {
-      throw "packageVersion must be provided"
+      $packageVersion = "0.0.0"
     }
   }
 
@@ -42,12 +42,12 @@ task Restore -depends GetNuGet {
 }
 
 task BuildTasks -depends $buildTasksDeps {
-  & (Get-MSBuildExePath) "$PSScriptRoot\..\src\tasks\RichardSzalay.Helix.Publishing.Tasks.sln" "/P:Configuration=$buildConfiguration" "/m" "/v:m"
+  & (Get-MSBuildExePath) "$PSScriptRoot\..\src\tasks\RichardSzalay.Sitecore.Icons.Tasks.sln" "/P:Configuration=$buildConfiguration" "/m" "/v:m"
 }
 
 task TestTasks -depends CreateArtifactDir,BuildTasks {
   $testResultsPath = Join-Path $artifactDir tasks-test-results.xml
-  & $xunitPath "$PSScriptRoot\..\src\tasks\RichardSzalay.Helix.Publishing.Tasks.Tests\bin\$buildConfiguration\RichardSzalay.Helix.Publishing.Tasks.Tests.dll" -nunit $testResultsPath
+  & $xunitPath "$PSScriptRoot\..\src\tasks\RichardSzalay.Sitecore.Icons.Tasks.Tests\bin\$buildConfiguration\RichardSzalay.Sitecore.Icons.Tasks.Tests.dll" -nunit $testResultsPath
 }
 
 task Test -depends TestTasks,TestTargets
