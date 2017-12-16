@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/n1pnky311hnto0kk/branch/master?svg=true)](https://ci.appveyor.com/project/richardszalay/sitecore-icon-build/branch/master)
+
 MSBuild extensions for building Sitecore icon zip archives and including them when publishing.
 
 Icons that match the following structure will automatically be packaged:
