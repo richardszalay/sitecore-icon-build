@@ -4,6 +4,8 @@
     <BuildSitecoreIconArchives Condition="'$(BuildSitecoreIconArchives)' == ''">true</BuildSitecoreIconArchives>
     <CollectDefaultSitecoreSizedIconSources>$(BuildSitecoreIconArchives)</CollectDefaultSitecoreSizedIconSources>
     <DefaultSitecoreSizedIconSourcesParentDirectory>sitecore\shell\Themes\Standard</DefaultSitecoreSizedIconSourcesParentDirectory>
+    <ResizeSitecoreIcons Condition="'$(ResizeSitecoreIcons)' == ''">true</ResizeSitecoreIcons>
+    <ResizeTargetDimensions>16x16;24x24;32x32;48x48;64x64;128x128</ResizeTargetDimensions>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -17,6 +19,7 @@
     <BuildSitecoreIconArchivesDependsOn>
       $(BuildSitecoreIconArchivesDependsOn);
       CollectSitecoreSizedIconSourceFiles;
+      ResizeUnsizedIconSources;
     </BuildSitecoreIconArchivesDependsOn>
 
     <PipelineCollectFilesPhaseDependsOn>
@@ -29,6 +32,34 @@
       ExcludeSizedIconSources
     </ExcludeFilesFromPackageDependsOn>
   </PropertyGroup>
+
+  <Target Name="CollectUnsizedIconSources" DependsOnTargets="CollectSitecoreSizedIconSourceFiles">
+    <ItemGroup>
+      <_SitecoreUnizedIconSourceFilesSpecs Include="@(SitecoreSizedIconSources -> '%(FullPath)\*')">
+        <ArchiveName>%(Filename)</ArchiveName>
+      </_SitecoreUnizedIconSourceFilesSpecs>
+    </ItemGroup>
+
+    <CreateItem Include="@(_SitecoreUnizedIconSourceFilesSpecs)">
+      <Output TaskParameter="Include" ItemName="SitecoreUnsizedIconSourceFiles" />
+    </CreateItem>
+  </Target>
+
+  <Target Name="ResizeUnsizedIconSources"
+          DependsOnTargets="CollectUnsizedIconSources"
+          >
+    <ResizeSitecoreIcons
+      UnsizedIcons="@(SitecoreUnsizedIconSourceFiles)"
+      SizedIcons="@(SitecoreSizedIconSourceFiles)"
+      OutputSizes="$(ResizeTargetDimensions)"
+      IntermediatePath="$(IntermediateSitecoreIconArchivePath)"
+      Condition="'@(SitecoreUnsizedIconSourceFiles)' != ''"
+      >
+
+      <Output TaskParameter="Output" ItemName="SitecoreSizedIconSourceFiles" />
+
+    </ResizeSitecoreIcons>
+  </Target>
 
   <Target Name="CollectSitecoreSizedIconSources">
     <ItemGroup>
@@ -58,7 +89,7 @@
     <ItemGroup>
       <SitecoreSizedIconSourceFiles Include="@(_SitecoreSizedIconSourceFiles)"
                                     Condition="'%(RecursiveDir)' != ''">
-        <EntryPath>%(RecursiveDir)%(Filename)%(Extension)</EntryPath>
+        <EntryPath>%(ArchiveName)\%(RecursiveDir)%(Filename)%(Extension)</EntryPath>
       </SitecoreSizedIconSourceFiles>
     </ItemGroup>
   </Target>
@@ -107,4 +138,5 @@
   </Target>
 
   <UsingTask TaskName="CreateSitecoreIconArchive" AssemblyFile="RichardSzalay.Sitecore.Icons.Tasks.dll"/>
+  <UsingTask TaskName="ResizeSitecoreIcons" AssemblyFile="RichardSzalay.Sitecore.Icons.Tasks.dll"/>
 </Project>

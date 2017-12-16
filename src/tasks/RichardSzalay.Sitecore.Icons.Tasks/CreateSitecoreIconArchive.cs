@@ -3,8 +3,6 @@ using Microsoft.Build.Utilities;
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Xml;
 
 namespace RichardSzalay.Sitecore.Icons.Tasks
 {
