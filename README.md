@@ -4,7 +4,7 @@ MSBuild extensions for building Sitecore icon zip archives and including them in
 
 # Installation
 
-NuGet package coming soon
+`PM> Install-Package RichardSzalay.Sitecore.Icons.MSBuild`
 
 # Usage
 
