@@ -75,9 +75,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="sitecore/shell/Themes/Standard/Set1/icon1.png" />
     <Content Include="sitecore/shell/Themes/Standard/Set1/16x16/icon1.png" />
-    <Content Include="sitecore/shell/Themes/Standard/Set1/24x24/icon1.png" />
-    <Content Include="sitecore/shell/Themes/Standard/Set1/32x32/icon1.png" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

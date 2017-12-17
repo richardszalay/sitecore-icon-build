@@ -4,14 +4,10 @@
 $fixtures = @{
     default = @{
         Project = "$PSScriptRoot/fixtures/default/SitecoreIcons.TestFixture.csproj";
-    };
-    unsized = @{
-        Project = "$PSScriptRoot/fixtures/unsized/SitecoreIcons.TestFixture.csproj";
-    }
-    
+    }    
 }
 
-Describe "Default configuration" {
+Describe "Sized icons - default configuration" {
     Context "building a project with sized sitecore icons" {
         $projectPath = $fixtures.default.Project
         $projectDir = Split-Path $projectPath -Parent
@@ -135,57 +131,5 @@ Describe "Default configuration" {
         }
     }
 
-    Context "building a project with unsized sitecore icons" {
-        $projectPath = $fixtures.unsized.Project
-        $projectDir = Split-Path $projectPath -Parent
-        $defaultArtifactDir = Join-Path $projectDir "obj\Debug\sitecoreIcons"
-        
-        Invoke-MSBuild -Project $projectPath -Properties @{
-            "Configuration" = "Debug";
-        }
-
-        It "should create an archive for each icon set" {
-            $set1OutputPath = Join-Path $defaultArtifactDir "Set1.zip"
-
-            Test-Path $set1OutputPath | Should Be $true
-        }
-
-        It "should resize the images into the target dimensions" {
-            $set1OutputPath = Join-Path $defaultArtifactDir "Set1.zip"
-            $expandedSet1OutputPath = [io.path]::ChangeExtension($set1OutputPath, $null).TrimEnd('.') + "-tmp"
-
-            Expand-Archive $set1OutputPath -DestinationPath $expandedSet1OutputPath
-
-            Test-Path (Join-Path $expandedSet1OutputPath "Set1\16x16\icon1.png") | Should Be $true
-            Test-Path (Join-Path $expandedSet1OutputPath "Set1\24x24\icon1.png") | Should Be $true
-            Test-ImageDimensions (Join-Path $expandedSet1OutputPath "Set1\24x24\icon1.png") 24 24
-            Test-Path (Join-Path $expandedSet1OutputPath "Set1\32x32\icon1.png") | Should Be $true
-            Test-ImageDimensions (Join-Path $expandedSet1OutputPath "Set1\32x32\icon1.png") 32 32
-            Test-Path (Join-Path $expandedSet1OutputPath "Set1\48x48\icon1.png") | Should Be $true
-            Test-ImageDimensions (Join-Path $expandedSet1OutputPath "Set1\48x48\icon1.png") 48 48
-            Test-Path (Join-Path $expandedSet1OutputPath "Set1\64x64\icon1.png") | Should Be $true
-            Test-ImageDimensions (Join-Path $expandedSet1OutputPath "Set1\64x64\icon1.png") 64 64
-            Test-Path (Join-Path $expandedSet1OutputPath "Set1\128x128\icon1.png") | Should Be $true
-            Test-ImageDimensions (Join-Path $expandedSet1OutputPath "Set1\128x128\icon1.png") 128 128
-        }
-
-        It "should not replace any sized images" {
-            $set1OutputPath = Join-Path $defaultArtifactDir "Set1.zip"
-            $expandedSet1OutputPath = [io.path]::ChangeExtension($set1OutputPath, '').TrimEnd('.') + "-tmp"
-
-            $sizedImageSource = Join-Path (Split-Path $fixtures.default.project -Parent) `
-                "sitecore\shell\Themes\Standard\Set1\16x16\icon1.png"
-
-            $sizedImageSourceHash = (Get-FileHash $sizedImageSource -Algorithm MD5).Hash
-
-            Expand-Archive $set1OutputPath -DestinationPath $expandedSet1OutputPath -Force
-
-            $sizedImageInArchive = (Join-Path $expandedSet1OutputPath "Set1\16x16\icon1.png")
-
-            Test-Path $sizedImageInArchive | Should Be $true
-
-            (Get-FileHash $sizedImageInArchive -Algorithm MD5).Hash | Should Be $sizedImageSourceHash
-        }
-    }
 }
 

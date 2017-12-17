@@ -29,7 +29,8 @@
 
     <ExcludeFilesFromPackageDependsOn>
       $(ExcludeFilesFromPackageDependsOn);
-      ExcludeSizedIconSources
+      ExcludeSizedIconSources;
+      ExcludeUnsizedIconSources;
     </ExcludeFilesFromPackageDependsOn>
   </PropertyGroup>
 
@@ -43,6 +44,8 @@
     <CreateItem Include="@(_SitecoreUnizedIconSourceFilesSpecs)">
       <Output TaskParameter="Include" ItemName="SitecoreUnsizedIconSourceFiles" />
     </CreateItem>
+
+    
   </Target>
 
   <Target Name="ResizeUnsizedIconSources"
@@ -113,6 +116,14 @@
   <Target Name="ExcludeSizedIconSources" DependsOnTargets="CollectSitecoreSizedIconSourceFiles">
     <ItemGroup>
       <ExcludeFromPackageFiles Include="@(SitecoreSizedIconSourceFiles)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ExcludeUnsizedIconSources" DependsOnTargets="CollectUnsizedIconSources">
+
+    <!-- <Error Text="@(SitecoreUnsizedIconSourceFiles)" /> -->
+    <ItemGroup>
+      <ExcludeFromPackageFiles Include="@(SitecoreUnsizedIconSourceFiles)" />
     </ItemGroup>
   </Target>
 

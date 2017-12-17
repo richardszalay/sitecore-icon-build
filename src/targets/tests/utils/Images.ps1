@@ -4,6 +4,8 @@ function Get-ImageDimensions
         [string]$Path
     )
 
+    Add-Type -AssemblyName System.Drawing
+
     $png = New-Object System.Drawing.Bitmap $Path
 
     return @{
