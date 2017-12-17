@@ -3,8 +3,11 @@
     <metadata>
         <id>RichardSzalay.Sitecore.Icons.MSBuild</id>
         <version>0.1</version>
-        <description>Automatically builds Sitecore icon zip files during build</description>
+        <description>MSBuild extensions for building Sitecore icon zip archives and including them in the published website</description>
         <authors>Richard Szalay</authors>
+        <projectUrl>https://github.com/richardszalay/sitecore-icon-build</projectUrl>
+        <licenseUrl>https://github.com/richardszalay/sitecore-icon-build/blob/master/LICENSE</licenseUrl>
+        <tags>sitecore icons build publish</tags>
     </metadata>
     
     <files>
